@@ -5,9 +5,9 @@
    ══════════════════════════════════════════════════════════════ */
 
 :root{
-  --paper:#F4F2EB;
-  --paper-2:#EAE6DA;
-  --white:#FCFBF7;
+  --paper:#F7F3EA;
+  --paper-2:#F0E7DA;
+  --white:#FDFBF6;
 
   --ink:#121110;
   --ink-2:#2B2822;   /* body copy. dark on purpose */
@@ -177,7 +177,7 @@ main .sheet:not(.hero) > .body{padding-inline:clamp(2rem,6vw,6rem)}
 .sh__l{max-width:64ch;font-size:var(--t-lede);color:var(--ink-2);line-height:1.55}
 
 /* ── HERO ───────────────────────────────────────────────────── */
-.hero{padding-top:4.25rem;background:linear-gradient(90deg,#F4F2EB 0%,rgb(245,228,208) 100%)}
+.hero{padding-top:4.25rem;background:radial-gradient(135% 120% at 74% 26%,#F4DAC2 0%,#F7E6D4 34%,#F9F0E4 62%,#F7F3EA 88%)}
 .hero__body{padding:clamp(2.25rem,3.2vw,3rem) var(--pad) clamp(2.25rem,3.4vw,3.25rem) clamp(1.25rem,2.6vw,2.5rem)}
 .hero__row{display:grid;grid-template-columns:minmax(0,40fr) minmax(0,60fr);gap:clamp(1.75rem,3vw,3rem);align-items:start}
 .hero__copy{position:relative;z-index:3;min-width:0}
@@ -195,21 +195,15 @@ main .sheet:not(.hero) > .body{padding-inline:clamp(2rem,6vw,6rem)}
 /* Two supplied layers on the warm gradient: technical linework behind, the
    cut out house in front. Both are transparent PNGs, so there is no frame
    and no background to hide. */
-.hero__schematic{position:absolute;z-index:1;top:-14%;left:-11%;
-  width:130%;height:auto;opacity:.75;pointer-events:none;user-select:none;
-  -webkit-mask-image:linear-gradient(90deg,transparent 0,#000 14%,#000 100%),
-                     linear-gradient(180deg,#000 0,#000 78%,transparent 96%);
-  mask-image:linear-gradient(90deg,transparent 0,#000 14%,#000 100%),
-             linear-gradient(180deg,#000 0,#000 78%,transparent 96%);
-  -webkit-mask-composite:source-in;mask-composite:intersect}
+.hero__schematic{position:absolute;z-index:1;top:-13%;left:-26%;
+  width:121%;height:auto;opacity:.85;mix-blend-mode:multiply;pointer-events:none;user-select:none;
+  -webkit-mask-image:linear-gradient(180deg,#000 0,#000 80%,transparent 97%);
+  mask-image:linear-gradient(180deg,#000 0,#000 80%,transparent 97%)}
 .hero__house{position:relative;z-index:2;display:block;
-  width:88%;max-width:none;margin:-6% 0 -4% 9%;height:auto;max-height:none;
+  width:79%;max-width:none;margin:-3% 0 -3% 13%;height:auto;max-height:none;
   border:0;filter:drop-shadow(0 22px 36px rgba(18,17,16,.14));
-  -webkit-mask-image:linear-gradient(180deg,#000 0,#000 93%,transparent 100%),
-                     linear-gradient(90deg,transparent 0,#000 5%,#000 100%);
-  mask-image:linear-gradient(180deg,#000 0,#000 93%,transparent 100%),
-             linear-gradient(90deg,transparent 0,#000 5%,#000 100%);
-  -webkit-mask-composite:source-in;mask-composite:intersect}
+  -webkit-mask-image:linear-gradient(180deg,#000 0,#000 94%,transparent 100%);
+  mask-image:linear-gradient(180deg,#000 0,#000 94%,transparent 100%)}
 .hero-facts{position:absolute;z-index:4;left:-3.75rem;bottom:-1rem;width:calc(100% + 3.75rem);display:grid;
   grid-template-columns:repeat(4,minmax(0,1fr));background:var(--white);border:1px solid var(--rule);
   box-shadow:0 16px 34px rgba(18,17,16,.12)}
@@ -771,3 +765,10 @@ img,canvas,svg,video{max-height:none}
    quotes. Tighten it and let the cards carry more lines. */
 #reviews .body{padding-block:clamp(2rem,3vw,2.75rem) 1.1rem}
 #reviews .sh{margin-bottom:0}
+
+
+/* Ambient warmth. The peach wash is what makes the page feel finished, so it
+   continues past the hero instead of stopping at its edge. */
+.hero-band{background:linear-gradient(180deg,#F3E7D9 0%,#F0E7DA 60%)}
+.sec--alt,.alt{background:linear-gradient(180deg,#F2E9DC 0%,#F0E7DA 70%)}
+.ft{background:linear-gradient(180deg,#F1E8DB,#EFE5D6)}
