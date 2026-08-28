@@ -503,10 +503,46 @@ setTimeout(() => $$('.rv:not(.on)').forEach(el => {
 (() => {
   if (CALM) return;
   $$('.rvs__t').forEach(track => {
-    track.innerHTML += track.innerHTML;                 // seamless loop
-    const secs = Math.max(40, (track.children.length / 2) * 3.2);
-    track.style.animation = `track ${secs}s linear infinite`;
-    if (track.dataset.dir === '-1') track.style.animationDirection = 'reverse';
+    const container = track.closest('.rvs');
+    track.innerHTML += track.innerHTML;
+
+    let half = track.scrollWidth / 2;
+    let x = 0;
+    let last = 0;
+    let raf = 0;
+    let hovered = false;
+    let visible = false;
+    const speed = 36;
+
+    const stop = () => {
+      cancelAnimationFrame(raf);
+      raf = 0;
+    };
+    const frame = now => {
+      if (!visible || hovered || document.hidden) { stop(); return; }
+      const delta = Math.min(now - last, 64);
+      last = now;
+      x -= speed * delta / 1000;
+      if (x <= -half) x += half;
+      track.style.transform = 'translate3d(' + x + 'px,0,0)';
+      raf = requestAnimationFrame(frame);
+    };
+    const start = () => {
+      if (raf || !visible || hovered || document.hidden) return;
+      last = performance.now();
+      raf = requestAnimationFrame(frame);
+    };
+
+    container.addEventListener('mouseenter', () => { hovered = true; stop(); });
+    container.addEventListener('mouseleave', () => { hovered = false; start(); });
+    new IntersectionObserver(([entry]) => {
+      visible = entry.isIntersecting;
+      if (visible) start(); else stop();
+    }, { threshold: .01 }).observe(container);
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) stop(); else start();
+    });
+    new ResizeObserver(() => { half = track.scrollWidth / 2; }).observe(container);
   });
 })();
 
