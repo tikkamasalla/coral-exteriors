@@ -195,8 +195,8 @@ main .sheet:not(.hero) > .body{padding-inline:clamp(2rem,6vw,6rem)}
 /* Two supplied layers on the warm gradient: technical linework behind, the
    cut out house in front. Both are transparent PNGs, so there is no frame
    and no background to hide. */
-.hero__schematic{position:absolute;z-index:1;top:-13%;left:-26%;
-  width:121%;height:auto;opacity:.85;mix-blend-mode:multiply;pointer-events:none;user-select:none;
+.hero__schematic{position:absolute;z-index:1;top:-11%;left:-1%;
+  width:118%;height:auto;opacity:.85;mix-blend-mode:multiply;pointer-events:none;user-select:none;
   -webkit-mask-image:linear-gradient(180deg,#000 0,#000 80%,transparent 97%);
   mask-image:linear-gradient(180deg,#000 0,#000 80%,transparent 97%)}
 .hero__house{position:relative;z-index:2;display:block;
