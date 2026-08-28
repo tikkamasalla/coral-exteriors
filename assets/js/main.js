@@ -16,7 +16,7 @@ const io = new IntersectionObserver(es => es.forEach(e => {
   e.target.classList.add('on');
   io.unobserve(e.target);
 }), { rootMargin: '0px 0px -10% 0px', threshold: 0.06 });
-$$('.rv, .pro li').forEach(el => io.observe(el));
+$$('.rv, .drawline, .pro li').forEach(el => io.observe(el));
 $$('.pro li').forEach((el, i) => el.style.setProperty('--i', i));
 // safety net: content must never stay hidden if the observer misbehaves
 setTimeout(() => $$('.rv:not(.on)').forEach(el => {
@@ -60,28 +60,62 @@ setTimeout(() => $$('.rv:not(.on)').forEach(el => {
     d.classList.toggle('open', open);
     d.setAttribute('aria-hidden', String(!open));
     b.setAttribute('aria-expanded', String(open));
-    document.body.classList.toggle('is-locked', open);
+    document.body.classList.toggle('lock', open);
   };
   b.addEventListener('click', () => set(!d.classList.contains('open')));
   $$('a', d).forEach(a => a.addEventListener('click', () => set(false)));
   addEventListener('keydown', e => e.key === 'Escape' && set(false));
 })();
 
-/* ── FACT STRIP ─────────────────────────────────────────────── */
+/* ── BEFORE / AFTER SLIDER ──────────────────────────────────── */
 (() => {
-  const row = $('#strip');
-  const items = [
-    'Traditional stucco <b>&amp;</b> EIFS',
-    'Materials rated to <b>-40&thinsp;&deg;C</b>',
-    'Free written quotes',
-    'Open <b>seven days</b>, 6:30am to 8:00pm',
-    'Calgary <b>&amp;</b> surrounding counties',
-    'In town lots <b>&amp;</b> rural acreages',
-    'Licensed and insured',
-    'Over <b>15 years</b> in business'
-  ];
-  const html = items.map(t => `<span>${t}</span><s>/</s>`).join('');
-  row.innerHTML = html + html;
+  const ba = $('#ba');
+  if (!ba) return;
+  const view = $('#baView'), before = $('#baBefore'), after = $('#baAfter'), handle = $('#baHandle');
+
+  const set = p => {
+    p = Math.max(0, Math.min(100, p));
+    ba.style.setProperty('--p', p + '%');
+    handle.setAttribute('aria-valuenow', Math.round(p));
+  };
+  const track = e => {
+    const r = view.getBoundingClientRect();
+    set(((e.clientX - r.left) / r.width) * 100);
+  };
+
+  let dragging = false;
+  view.addEventListener('pointerdown', e => {
+    dragging = true;
+    try { view.setPointerCapture(e.pointerId); } catch (_) {}
+    track(e);
+  });
+  view.addEventListener('pointermove', e => { if (dragging) track(e); });
+  const stop = e => {
+    dragging = false;
+    try { view.releasePointerCapture(e.pointerId); } catch (_) {}
+  };
+  view.addEventListener('pointerup', stop);
+  view.addEventListener('pointercancel', stop);
+
+  handle.addEventListener('keydown', e => {
+    const cur = +handle.getAttribute('aria-valuenow') || 50;
+    const step = e.shiftKey ? 12 : 4;
+    const moves = { ArrowLeft: cur - step, ArrowRight: cur + step, Home: 0, End: 100 };
+    if (e.key in moves) { set(moves[e.key]); e.preventDefault(); }
+  });
+
+  $$('#baTabs button').forEach(b => b.addEventListener('click', () => {
+    $$('#baTabs button').forEach(x => { x.classList.remove('on'); x.setAttribute('aria-selected', 'false'); });
+    b.classList.add('on'); b.setAttribute('aria-selected', 'true');
+    const name = b.textContent.trim().toLowerCase();
+    before.src = 'assets/img/' + b.dataset.b;
+    after.src  = 'assets/img/' + b.dataset.a;
+    before.alt = name + ', before the work';
+    after.alt  = name + ', after the work';
+    set(50);
+  }));
+
+  set(50);
 })();
 
 /* ── WALL SYSTEM EXPLORER ───────────────────────────────────── */
