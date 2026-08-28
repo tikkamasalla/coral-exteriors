@@ -84,18 +84,22 @@ setTimeout(() => $$('.rv:not(.on)').forEach(el => {
   };
 
   let dragging = false;
-  view.addEventListener('pointerdown', e => {
+  const start = e => {
     dragging = true;
-    try { view.setPointerCapture(e.pointerId); } catch (_) {}
+    try { e.currentTarget.setPointerCapture(e.pointerId); } catch (_) {}
     track(e);
-  });
-  view.addEventListener('pointermove', e => { if (dragging) track(e); });
+  };
+  const move = e => { if (dragging) track(e); };
   const stop = e => {
     dragging = false;
-    try { view.releasePointerCapture(e.pointerId); } catch (_) {}
+    try { e.currentTarget.releasePointerCapture(e.pointerId); } catch (_) {}
   };
-  view.addEventListener('pointerup', stop);
-  view.addEventListener('pointercancel', stop);
+  [view, handle].forEach(el => {
+    el.addEventListener('pointerdown', start);
+    el.addEventListener('pointermove', move);
+    el.addEventListener('pointerup', stop);
+    el.addEventListener('pointercancel', stop);
+  });
 
   handle.addEventListener('keydown', e => {
     const cur = +handle.getAttribute('aria-valuenow') || 50;
@@ -118,81 +122,63 @@ setTimeout(() => $$('.rv:not(.on)').forEach(el => {
   set(50);
 })();
 
-/* ── WALL SYSTEM EXPLORER ───────────────────────────────────── */
+/* ── WALL SYSTEM COMPARISON ─────────────────────────────────── */
 (() => {
-  const stack = $('#stack'), list = $('#layers');
-  if (!stack) return;
+  const viz = $('#sysViz');
+  if (!viz) return;
 
-  const SYS = {
-    trad: [
-      ['Finish coat','2 to 3 mm','#C6B396','The colour and texture you see. Acrylic or cement based, and thinner than most people expect.'],
-      ['Brown coat','about 10 mm','#AE9573','The levelling layer, where the wall becomes flat and true.'],
-      ['Scratch coat','about 10 mm','#947D5C','First coat, scored while wet so the next coat has something to grip.'],
-      ['Wire lath','galvanised','#736F67','Mesh fastened to the wall. Stucco holds on by mechanical grip, not adhesion.'],
-      ['Building paper','two layers','#54616A','Moisture barrier. Water that gets past the stucco is meant to run down this and back out.'],
-      ['Sheathing','OSB or plywood','#6C5945','The structural skin. Every layer above it exists to keep this one dry.']
-    ],
-    eifs: [
-      ['Acrylic finish','1.5 to 3 mm','#CBB99E','Thin, flexible and coloured. Soft enough that hail leaves marks in it.'],
-      ['Base coat and mesh','about 3 mm','#A6AEAC','Cement based coat with fibreglass mesh embedded. This is the impact resistance of the system.'],
-      ['Rigid foam board','50 to 100 mm','#E2DBCB','The insulation, and the reason EIFS saves energy. Also why the wall sounds hollow.'],
-      ['Drainage cavity','grooved','#7E97A6','Channels that let water behind the foam drain out. Older barrier systems had none.'],
-      ['Weather barrier','membrane','#54616A','Liquid applied or sheet membrane on the sheathing. The last line of defence.'],
-      ['Sheathing','OSB or plywood','#6C5945','Once water sits here you get rot, and the repair becomes far larger.']
-    ]
+  const marks = $$('.sysviz__markers li', viz);
+  const tradScore = $('#sysTradScore');
+  const eifsScore = $('#sysEifsScore');
+  const duration = 4500;
+  let stage = 0;
+  let elapsed = 0;
+  let previousTime = 0;
+  let frame = 0;
+  let visible = false;
+
+  const complete = index => {
+    const mark = marks[index];
+    if (!mark || mark.classList.contains('is-complete')) return;
+    mark.classList.add('is-complete');
+    tradScore.textContent = marks.filter(item => item.classList.contains('is-complete') && item.dataset.winner === 'trad').length;
+    eifsScore.textContent = marks.filter(item => item.classList.contains('is-complete') && item.dataset.winner === 'eifs').length;
   };
 
-  const dim = (hex, n) => {
-    const v = parseInt(hex.slice(1), 16);
-    const c = x => Math.max(0, Math.min(255, x + n));
-    return `rgb(${c(v >> 16)},${c((v >> 8) & 255)},${c(v & 255)})`;
+  const show = index => {
+    stage = index;
+    viz.dataset.stage = String(index);
   };
 
-  let sys = 'trad';
+  if (CALM) {
+    show(0);
+    marks.forEach((_, index) => complete(index));
+    return;
+  }
 
-  const pick = i => {
-    $$('.lyr', stack).forEach((p, k) => {
-      p.classList.toggle('on', k === i);
-      const off = k < i ? (i - k) * 9 : 0;
-      p.style.transform = `translateZ(${-k * 24 + (k === i ? 30 : 0)}px) translate(${off}px,${off}px)`;
-    });
-    $$('li', list).forEach((r, k) => r.classList.toggle('on', k === i));
+  const tick = time => {
+    if (!visible) return;
+    if (!previousTime) previousTime = time;
+    elapsed += Math.min(time - previousTime, 100);
+    previousTime = time;
+
+    if (elapsed >= duration) {
+      elapsed -= duration;
+      complete(stage);
+      show((stage + 1) % marks.length);
+    }
+    frame = requestAnimationFrame(tick);
   };
 
-  const build = () => {
-    stack.innerHTML = ''; list.innerHTML = '';
-    SYS[sys].forEach(([n, m, c, d], i) => {
-      const p = document.createElement('div');
-      p.className = 'lyr';
-      p.style.background = `linear-gradient(135deg,${c},${dim(c, -20)})`;
-      p.addEventListener('pointerenter', () => pick(i));
-      p.addEventListener('click', () => pick(i));
-      stack.appendChild(p);
+  const observer = new IntersectionObserver(entries => {
+    visible = entries.some(entry => entry.isIntersecting);
+    viz.classList.toggle('is-paused', !visible);
+    cancelAnimationFrame(frame);
+    previousTime = 0;
+    if (visible) frame = requestAnimationFrame(tick);
+  }, { threshold: 0.08 });
 
-      const li = document.createElement('li');
-      li.innerHTML = `<span class="lyrs__sw" style="background:linear-gradient(135deg,${c},${dim(c,-20)})"></span>
-        <div><div class="lyrs__h"><h4>${n}</h4><em>${m}</em></div><p>${d}</p></div>`;
-      li.addEventListener('pointerenter', () => pick(i));
-      li.addEventListener('click', () => pick(i));
-      list.appendChild(li);
-    });
-    pick(0);
-  };
-
-  const pill = () => {
-    const on = $('.tabs button.on'), p = $('.tabs__p');
-    if (on && p) { p.style.left = on.offsetLeft + 'px'; p.style.width = on.offsetWidth + 'px'; }
-  };
-
-  $$('.tabs button').forEach(b => b.addEventListener('click', () => {
-    $$('.tabs button').forEach(x => { x.classList.remove('on'); x.setAttribute('aria-selected', 'false'); });
-    b.classList.add('on'); b.setAttribute('aria-selected', 'true');
-    sys = b.dataset.sys; pill(); build();
-  }));
-
-  build(); pill();
-  addEventListener('resize', pill);
-  document.fonts?.ready.then(pill);
+  observer.observe(viz);
 })();
 
 /* ══════════════════════════════════════════════════════════════
@@ -308,7 +294,7 @@ setTimeout(() => $$('.rv:not(.on)').forEach(el => {
   };
 
   /* ---- HUD ---- */
-  const DEPTHS = ['Intact', 'Finish coat breached', 'Foam insulation exposed', 'Sheathing reached'];
+  const DEPTHS = ['No damage', 'Outer coat broken', 'Foam insulation exposed', 'Wood panel reached'];
   const updateHud = () => {
     holeEl.textContent = holes;
     depthEl.textContent = DEPTHS[deepest];
@@ -380,7 +366,7 @@ setTimeout(() => $$('.rv:not(.on)').forEach(el => {
             B.y = .22 + ((B.hop * 7) % 3) * .16;
             place();
             bird.style.transform = `scaleX(${Math.random() > .8 ? -1 : 1})`;
-            log('Moved to a new spot on the same elevation.');
+            log('Moved to a new spot on the same wall.');
           }
           B.burst = 5 + Math.random() * 5 | 0;
         }
@@ -390,8 +376,8 @@ setTimeout(() => $$('.rv:not(.on)').forEach(el => {
         setTimeout(() => { head.style.transform = 'rotate(4deg)'; }, 42);
         strike();
         B.cool = B.burst > 0 ? 78 : rand(620, 1150);
-        if (B.pecks === 4) log('Through the finish coat. Now into the foam.');
-        if (B.pecks === 10) log('Cavity opened. Sheathing exposed to weather.');
+        if (B.pecks === 4) log('Through the outer coat. Now into the foam.');
+        if (B.pecks === 10) log('The hole reached the wood panel. It is now open to rain and snow.');
       } else {
         B.cool = 400;
       }
@@ -439,7 +425,7 @@ setTimeout(() => $$('.rv:not(.on)').forEach(el => {
     B.pecks = 0; B.cool = 900; deterred = false;
     deepest = Math.min(deepest, 2);
     updateHud();
-    log('Surface patched. The wall still sounds hollow, so the bird returns.');
+    log('The surface is filled. The wall still feels hollow. The bird returns.');
     btnPatch.disabled = true;
     setTimeout(() => { btnPatch.disabled = false; }, 2600);
   });
@@ -451,7 +437,7 @@ setTimeout(() => $$('.rv:not(.on)').forEach(el => {
     deterred = true; updateHud();
     root.classList.add('fixed');
     bird.classList.add('away');
-    log('Foam and mesh rebuilt, then deterrents fitted. The bird leaves the elevation.');
+    log('The foam and mesh are replaced. Reflectors are fitted. The bird leaves this wall.');
     setTimeout(() => {
       bird.classList.remove('away');
       B.gone = false; deterred = false;
@@ -518,7 +504,7 @@ setTimeout(() => $$('.rv:not(.on)').forEach(el => {
   if (CALM) return;
   $$('.rvs__t').forEach(track => {
     track.innerHTML += track.innerHTML;                 // seamless loop
-    const secs = (track.children.length / 2) * 9;       // pace follows content
+    const secs = Math.max(40, (track.children.length / 2) * 3.2);
     track.style.animation = `track ${secs}s linear infinite`;
     if (track.dataset.dir === '-1') track.style.animationDirection = 'reverse';
   });
