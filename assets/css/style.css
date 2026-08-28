@@ -186,8 +186,8 @@ main .sheet:not(.hero) > .body{padding-inline:clamp(2rem,6vw,6rem)}
   color:var(--ink-3);margin-bottom:1.1rem}
 .hero__k b{color:var(--red);font-weight:500}
 .hero__k s{text-decoration:none;color:var(--rule)}
-.hero h1{font-size:clamp(2.8rem,4.5vw,4.6rem);line-height:.88;letter-spacing:-.035em;white-space:nowrap;
-  font-variation-settings:'wdth' 70;font-weight:800;max-width:none}
+.hero h1{font-size:clamp(2.8rem,4.5vw,4.6rem);line-height:.88;letter-spacing:-.035em;
+  font-variation-settings:'wdth' 70;font-weight:800;max-width:13ch}
 .hero__l{font-size:clamp(1rem,1.08vw,1.1rem);color:var(--ink-2);line-height:1.47;max-width:49ch;margin-top:1.45rem}
 .hero__cta{display:flex;flex-wrap:wrap;gap:0;margin-top:1.55rem;border:1px solid var(--ink);width:fit-content;max-width:100%}
 
@@ -195,10 +195,10 @@ main .sheet:not(.hero) > .body{padding-inline:clamp(2rem,6vw,6rem)}
 /* Two supplied layers on the warm gradient: technical linework behind, the
    cut out house in front. Both are transparent PNGs, so there is no frame
    and no background to hide. */
-.hero__schematic{position:absolute;z-index:1;top:-6%;left:-14%;
+.hero__schematic{position:absolute;z-index:1;top:-6%;left:-2%;
   width:112%;height:auto;opacity:.72;pointer-events:none;user-select:none;
-  -webkit-mask-image:linear-gradient(90deg,transparent 0,#000 20%,#000 100%);
-  mask-image:linear-gradient(90deg,transparent 0,#000 20%,#000 100%)}
+  -webkit-mask-image:linear-gradient(90deg,transparent 0,#000 12%,#000 100%);
+  mask-image:linear-gradient(90deg,transparent 0,#000 12%,#000 100%)}
 .hero__house{position:relative;z-index:2;display:block;
   width:102%;max-width:none;margin:-11% -7% -6% 0;height:auto;max-height:none;
   border:0;filter:drop-shadow(0 22px 36px rgba(18,17,16,.14))}
