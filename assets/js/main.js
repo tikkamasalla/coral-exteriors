@@ -1,436 +1,521 @@
-/* ═══════════════════════════════════════════════════════════════
-   CORAL STUCCO & EXTERIORS — motion engine
-   Vanilla. No dependencies. Everything degrades without JS.
-   ═══════════════════════════════════════════════════════════════ */
+/* ══════════════════════════════════════════════════════════════
+   CORAL STUCCO & EXTERIORS
+   No dependencies. Everything below degrades to static content.
+   ══════════════════════════════════════════════════════════════ */
 (() => {
 'use strict';
 
 const $  = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 const CALM = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const rand = (a, b) => a + Math.random() * (b - a);
 
-/* ── 1 · INTRO CURTAIN ─────────────────────────────────────── */
+/* ── REVEAL ─────────────────────────────────────────────────── */
+const io = new IntersectionObserver(es => es.forEach(e => {
+  if (!e.isIntersecting) return;
+  e.target.classList.add('on');
+  io.unobserve(e.target);
+}), { rootMargin: '0px 0px -10% 0px', threshold: 0.06 });
+$$('.rv, .pro li').forEach(el => io.observe(el));
+$$('.pro li').forEach((el, i) => el.style.setProperty('--i', i));
+// safety net: content must never stay hidden if the observer misbehaves
+setTimeout(() => $$('.rv:not(.on)').forEach(el => {
+  if (el.getBoundingClientRect().top < innerHeight) el.classList.add('on');
+}), 2500);
+
+/* ── HEADER, PROGRESS, DOCK ─────────────────────────────────── */
 (() => {
-  const c = $('#curtain');
-  if (!c) return;
-  if (CALM) { c.remove(); document.body.classList.remove('is-locked'); return; }
-  document.body.classList.add('is-locked');
-  const lift = () => {
-    c.classList.add('is-done');
-    document.body.classList.remove('is-locked');
-    setTimeout(() => c.classList.add('is-gone'), 1800);
-  };
-  window.addEventListener('load', () => setTimeout(lift, 620));
-  setTimeout(lift, 3200); // hard failsafe if load never fires
-})();
-
-/* ── 2 · SPLIT TEXT ────────────────────────────────────────── */
-$$('[data-split]').forEach(el => {
-  const words = el.textContent.trim().split(/\s+/);
-  el.textContent = '';
-  words.forEach((w, i) => {
-    const span = document.createElement('span');
-    span.className = 'w';
-    span.style.setProperty('--wi', i);
-    const inner = document.createElement('i');
-    inner.textContent = w;
-    span.appendChild(inner);
-    el.appendChild(span);
-    if (i < words.length - 1) el.appendChild(document.createTextNode(' '));
-  });
-});
-
-/* ── 3 · REVEAL ON SCROLL ──────────────────────────────────── */
-const io = new IntersectionObserver((entries) => {
-  entries.forEach(e => {
-    if (!e.isIntersecting) return;
-    e.target.classList.add('is-in');
-    io.unobserve(e.target);
-  });
-}, { rootMargin: '0px 0px -11% 0px', threshold: 0.08 });
-
-$$('.reveal, .split, .step').forEach(el => io.observe(el));
-
-/* ── 4 · COUNT-UP ──────────────────────────────────────────── */
-const counters = new IntersectionObserver((entries) => {
-  entries.forEach(e => {
-    if (!e.isIntersecting) return;
-    const el = e.target;
-    counters.unobserve(el);
-    const end = +el.dataset.count;
-    const suf = el.dataset.suffix || '';
-    if (CALM) { el.textContent = end + suf; return; }
-    const T = 1500, t0 = performance.now();
-    const tick = (now) => {
-      const p = Math.min((now - t0) / T, 1);
-      const eased = 1 - Math.pow(1 - p, 3);
-      el.textContent = Math.round(end * eased) + suf;
-      if (p < 1) requestAnimationFrame(tick);
-    };
-    requestAnimationFrame(tick);
-  });
-}, { threshold: 0.6 });
-$$('[data-count]').forEach(el => counters.observe(el));
-
-/* ── 5 · HEADER + SCROLL PROGRESS + DOCK ───────────────────── */
-(() => {
-  const hdr  = $('#hdr');
-  const fill = $('#scrollbarFill');
-  const dock = $('#ctaDock');
-  const hero = $('#hero');
-  let last = 0, ticking = false;
-
+  const hd = $('#hd'), prog = $('#prog'), dock = $('#dock');
+  let last = 0, queued = false;
   const paint = () => {
-    const y = window.scrollY;
+    const y = scrollY;
     const max = document.documentElement.scrollHeight - innerHeight;
-    if (fill) fill.style.width = (max > 0 ? (y / max) * 100 : 0) + '%';
-
-    hdr.classList.toggle('is-stuck', y > 40);
-    hdr.classList.toggle('is-hidden', y > last && y > 420 && !$('#drawer').classList.contains('is-open'));
-
-    if (dock && hero) dock.classList.toggle('is-on', y > hero.offsetHeight * 0.85);
-
-    last = y;
-    ticking = false;
+    prog.style.width = (max > 0 ? (y / max) * 100 : 0) + '%';
+    hd.classList.toggle('stuck', y > 30);
+    hd.classList.toggle('away', y > last && y > 400 && !$('#drw').classList.contains('open'));
+    dock.classList.toggle('on', y > innerHeight * 0.9);
+    last = y; queued = false;
   };
-  addEventListener('scroll', () => {
-    if (!ticking) { requestAnimationFrame(paint); ticking = true; }
-  }, { passive: true });
+  addEventListener('scroll', () => { if (!queued) { requestAnimationFrame(paint); queued = true; } }, { passive: true });
   paint();
 })();
 
-/* ── 6 · NAV ACTIVE STATE ──────────────────────────────────── */
+/* ── NAV SPY ────────────────────────────────────────────────── */
 (() => {
-  const links = $$('.hdr__nav a');
-  const map = new Map();
-  links.forEach(a => {
-    const sec = $(a.getAttribute('href'));
-    if (sec) map.set(sec, a);
-  });
-  if (!map.size) return;
-  const spy = new IntersectionObserver((entries) => {
-    entries.forEach(e => {
-      const a = map.get(e.target);
-      if (!a) return;
-      if (e.isIntersecting) {
-        links.forEach(l => l.classList.remove('is-active'));
-        a.classList.add('is-active');
-      }
-    });
-  }, { rootMargin: '-45% 0px -50% 0px' });
-  map.forEach((_, sec) => spy.observe(sec));
+  const links = $$('.nav a'), map = new Map();
+  links.forEach(a => { const s = $(a.getAttribute('href')); if (s) map.set(s, a); });
+  const spy = new IntersectionObserver(es => es.forEach(e => {
+    if (!e.isIntersecting) return;
+    links.forEach(l => l.classList.remove('on'));
+    map.get(e.target)?.classList.add('on');
+  }), { rootMargin: '-42% 0px -52% 0px' });
+  map.forEach((_, s) => spy.observe(s));
 })();
 
-/* ── 7 · MOBILE DRAWER ─────────────────────────────────────── */
+/* ── DRAWER ─────────────────────────────────────────────────── */
 (() => {
-  const burger = $('#burger'), drawer = $('#drawer');
-  if (!burger || !drawer) return;
-  $$('.drawer__nav a').forEach((a, i) => a.style.setProperty('--i', i));
-
-  const set = (open) => {
-    drawer.classList.toggle('is-open', open);
-    drawer.setAttribute('aria-hidden', String(!open));
-    burger.setAttribute('aria-expanded', String(open));
+  const b = $('#burger'), d = $('#drw');
+  $$('a', d).forEach((a, i) => a.style.setProperty('--i', i));
+  const set = open => {
+    d.classList.toggle('open', open);
+    d.setAttribute('aria-hidden', String(!open));
+    b.setAttribute('aria-expanded', String(open));
     document.body.classList.toggle('is-locked', open);
   };
-  burger.addEventListener('click', () => set(!drawer.classList.contains('is-open')));
-  $$('.drawer a').forEach(a => a.addEventListener('click', () => set(false)));
-  addEventListener('keydown', e => { if (e.key === 'Escape') set(false); });
+  b.addEventListener('click', () => set(!d.classList.contains('open')));
+  $$('a', d).forEach(a => a.addEventListener('click', () => set(false)));
+  addEventListener('keydown', e => e.key === 'Escape' && set(false));
 })();
 
-/* ── 8 · HERO TICKER ───────────────────────────────────────── */
+/* ── FACT STRIP ─────────────────────────────────────────────── */
 (() => {
-  const row = $('#tickerRow');
-  if (!row) return;
+  const row = $('#strip');
   const items = [
-    'Materials rated to <b>−40 °C</b>',
-    'Freeze–thaw is the <b>#1</b> cause of stucco failure here',
-    'Golf-ball to tennis-ball hail · <b>June–August</b>',
-    'Gusts well over <b>80 km/h</b> on open lots',
-    '<b>85 mm</b> of rain in a single prairie system',
-    'Open <b>7 days</b> · 6:30 am – 8:00 pm',
-    '<b>Free</b> no-obligation quotes, in writing',
-    'Locally owned &amp; operated in <b>Calgary</b>',
-    '<b>15+</b> years on Alberta walls'
+    'Traditional stucco <b>&amp;</b> EIFS',
+    'Materials rated to <b>-40&thinsp;&deg;C</b>',
+    'Free written quotes',
+    'Open <b>seven days</b>, 6:30am to 8:00pm',
+    'Calgary <b>&amp;</b> surrounding counties',
+    'In town lots <b>&amp;</b> rural acreages',
+    'Licensed and insured',
+    'Over <b>15 years</b> in business'
   ];
-  const html = items.map(t => `<span>${t}</span><span>◆</span>`).join('');
-  row.innerHTML = html + html; // duplicate for a seamless loop
+  const html = items.map(t => `<span>${t}</span><s>/</s>`).join('');
+  row.innerHTML = html + html;
 })();
 
-/* ── 9 · FREEZE–THAW MACHINE ───────────────────────────────── */
+/* ── WALL SYSTEM EXPLORER ───────────────────────────────────── */
 (() => {
-  const wall  = $('#ftmWall');
-  const ice   = $('#ftmIce');
-  const fill  = $('#thermFill');
-  const state = $('#ftmState');
-  const slider= $('#thermSlider');
-  const crack = $('#crackPath');
-  if (!wall || !fill || !slider) return;
-
-  let damage = 2.5;           // crack width grows across cycles
-  let auto   = true;
-
-  const render = (temp) => {
-    const pct = ((temp + 40) / 60) * 100;             // −40..+20 → 0..100
-    fill.style.height = Math.max(3, pct) + '%';
-    fill.style.background = temp < 0
-      ? 'linear-gradient(180deg,var(--frost),var(--frost-dk))'
-      : 'linear-gradient(180deg,var(--coral),var(--ember))';
-
-    const frozen = temp < 0;
-    wall.classList.toggle('is-cold', frozen);
-    ice.classList.toggle('is-on', frozen);
-    state.classList.toggle('is-cold', frozen);
-
-    let label;
-    if (temp <= -25)      label = 'Deep freeze';
-    else if (temp < 0)    label = 'Freezing · water expanding';
-    else if (temp < 8)    label = 'Thaw · water seeping in';
-    else                  label = 'Chinook';
-    state.textContent = `${label} · ${temp > 0 ? '+' : ''}${temp} °C`;
-
-    if (crack) crack.style.setProperty('--cw', damage.toFixed(2));
-  };
-
-  slider.addEventListener('input', () => { auto = false; render(+slider.value); });
-  slider.addEventListener('pointerdown', () => { auto = false; });
-
-  // autonomous freeze–thaw loop while the section is on screen
-  let t = 9, dir = -1, running = false, raf = 0, lastStep = 0;
-
-  const loop = (now) => {
-    if (!running) return;
-    if (now - lastStep > 55) {
-      lastStep = now;
-      if (auto) {
-        t += dir * 1;
-        if (t <= -32) { dir = 1; damage = Math.min(damage + 0.55, 9); }  // a freeze widens it
-        if (t >= 14)  { dir = -1; }
-        slider.value = t;
-        render(t);
-      }
-    }
-    raf = requestAnimationFrame(loop);
-  };
-
-  const vis = new IntersectionObserver(([e]) => {
-    running = e.isIntersecting && !CALM;
-    if (running) { lastStep = performance.now(); raf = requestAnimationFrame(loop); }
-    else cancelAnimationFrame(raf);
-  }, { threshold: 0.25 });
-  vis.observe(wall.closest('.ftm'));
-
-  render(9);
-})();
-
-/* ── 10 · WALL ANATOMY ─────────────────────────────────────── */
-(() => {
-  const stack = $('#anStack'), list = $('#anList'), sw = $('.an__switch');
-  if (!stack || !list || !sw) return;
+  const stack = $('#stack'), list = $('#layers');
+  if (!stack) return;
 
   const SYS = {
     trad: [
-      { n:'Finish coat',      m:'2–3 mm',   c:'#C9B79A', d:'The colour and texture you actually see. Acrylic or cement-based, and thinner than most people assume.' },
-      { n:'Brown coat',       m:'≈10 mm',   c:'#B09876', d:'The levelling layer. This is where a wall becomes flat and true — and where a rushed job shows up years later.' },
-      { n:'Scratch coat',     m:'≈10 mm',   c:'#96805F', d:'First coat, deliberately scored while wet so the next coat has something to grip. Skip the scoring and the wall delaminates.' },
-      { n:'Wire lath',        m:'Galv.',    c:'#6E6A63', d:'Galvanised mesh fastened to the wall. Gives the wet mix a mechanical key — stucco holds on by grip, not glue.' },
-      { n:'Building paper',   m:'2 layers', c:'#4E5B62', d:'The moisture barrier. Anything that gets past the stucco is meant to run down this and back out at the bottom.' },
-      { n:'Sheathing',        m:'OSB/ply',  c:'#6B5844', d:'The structural skin of the house. Everything above exists to keep water off this one layer.' }
+      ['Finish coat','2 to 3 mm','#C6B396','The colour and texture you see. Acrylic or cement based, and thinner than most people expect.'],
+      ['Brown coat','about 10 mm','#AE9573','The levelling layer, where the wall becomes flat and true.'],
+      ['Scratch coat','about 10 mm','#947D5C','First coat, scored while wet so the next coat has something to grip.'],
+      ['Wire lath','galvanised','#736F67','Mesh fastened to the wall. Stucco holds on by mechanical grip, not adhesion.'],
+      ['Building paper','two layers','#54616A','Moisture barrier. Water that gets past the stucco is meant to run down this and back out.'],
+      ['Sheathing','OSB or plywood','#6C5945','The structural skin. Every layer above it exists to keep this one dry.']
     ],
     eifs: [
-      { n:'Acrylic finish',   m:'1.5–3 mm', c:'#CDBBA0', d:'Thin, flexible and coloured. Excellent looking, and soft enough that hail leaves marks in it.' },
-      { n:'Base coat + mesh', m:'≈3 mm',    c:'#A8B0AE', d:'Cement-based coat with fibreglass mesh embedded in it. This is the entire impact resistance of the system.' },
-      { n:'Rigid foam board', m:'50–100 mm',c:'#E7E1D3', d:'The insulation, and the reason EIFS saves energy. Also the reason the wall sounds hollow to a woodpecker.' },
-      { n:'Drainage cavity',  m:'Grooved',  c:'#7E97A6', d:'Channels that let any water behind the foam drain out. Older "barrier" EIFS had none — which is where the bad reputation came from.' },
-      { n:'Weather barrier',  m:'Membrane', c:'#4E5B62', d:'Liquid-applied or sheet membrane on the sheathing. The genuine last line of defence.' },
-      { n:'Sheathing',        m:'OSB/ply',  c:'#6B5844', d:'Plywood or OSB. Once water sits here you get rot, then mould, then a repair that costs many times the original one.' }
+      ['Acrylic finish','1.5 to 3 mm','#CBB99E','Thin, flexible and coloured. Soft enough that hail leaves marks in it.'],
+      ['Base coat and mesh','about 3 mm','#A6AEAC','Cement based coat with fibreglass mesh embedded. This is the impact resistance of the system.'],
+      ['Rigid foam board','50 to 100 mm','#E2DBCB','The insulation, and the reason EIFS saves energy. Also why the wall sounds hollow.'],
+      ['Drainage cavity','grooved','#7E97A6','Channels that let water behind the foam drain out. Older barrier systems had none.'],
+      ['Weather barrier','membrane','#54616A','Liquid applied or sheet membrane on the sheathing. The last line of defence.'],
+      ['Sheathing','OSB or plywood','#6C5945','Once water sits here you get rot, and the repair becomes far larger.']
     ]
   };
 
-  let sys = 'trad', sel = 0;
+  const dim = (hex, n) => {
+    const v = parseInt(hex.slice(1), 16);
+    const c = x => Math.max(0, Math.min(255, x + n));
+    return `rgb(${c(v >> 16)},${c((v >> 8) & 255)},${c(v & 255)})`;
+  };
+
+  let sys = 'trad';
+
+  const pick = i => {
+    $$('.lyr', stack).forEach((p, k) => {
+      p.classList.toggle('on', k === i);
+      const off = k < i ? (i - k) * 9 : 0;
+      p.style.transform = `translateZ(${-k * 24 + (k === i ? 30 : 0)}px) translate(${off}px,${off}px)`;
+    });
+    $$('li', list).forEach((r, k) => r.classList.toggle('on', k === i));
+  };
 
   const build = () => {
-    const layers = SYS[sys];
-    stack.innerHTML = '';
-    list.innerHTML = '';
+    stack.innerHTML = ''; list.innerHTML = '';
+    SYS[sys].forEach(([n, m, c, d], i) => {
+      const p = document.createElement('div');
+      p.className = 'lyr';
+      p.style.background = `linear-gradient(135deg,${c},${dim(c, -20)})`;
+      p.addEventListener('pointerenter', () => pick(i));
+      p.addEventListener('click', () => pick(i));
+      stack.appendChild(p);
 
-    layers.forEach((L, i) => {
-      // 3-D plate
-      const plate = document.createElement('div');
-      plate.className = 'an__layer';
-      plate.style.setProperty('--z', -(i * 26));
-      plate.style.background = `linear-gradient(135deg,${L.c},${shade(L.c, -18)})`;
-      plate.dataset.label = L.n;
-      plate.addEventListener('click', () => select(i));
-      plate.addEventListener('mouseenter', () => select(i));
-      stack.appendChild(plate);
-
-      // list row
       const li = document.createElement('li');
-      li.className = 'an__item';
-      li.innerHTML =
-        `<div class="an__sw" style="background:linear-gradient(90deg,${L.c},${shade(L.c,-22)})"></div>
-         <h4>${L.n}<em>${L.m}</em></h4>
-         <p>${L.d}</p>`;
-      li.addEventListener('click', () => select(i));
-      li.addEventListener('mouseenter', () => select(i));
+      li.innerHTML = `<span class="lyrs__sw" style="background:linear-gradient(135deg,${c},${dim(c,-20)})"></span>
+        <div><div class="lyrs__h"><h4>${n}</h4><em>${m}</em></div><p>${d}</p></div>`;
+      li.addEventListener('pointerenter', () => pick(i));
+      li.addEventListener('click', () => pick(i));
       list.appendChild(li);
     });
-    select(0);
+    pick(0);
   };
 
-  const select = (i) => {
-    sel = i;
-    $$('.an__layer', stack).forEach((p, k) => {
-      p.classList.toggle('is-sel', k === i);
-      const lift = k <= i ? (i - k) * -12 : 0;
-      p.style.transform = `translateZ(${(-(k * 26)) + (k === i ? 34 : 0)}px) translate(${lift}px,${lift}px)`;
-    });
-    $$('.an__item', list).forEach((r, k) => r.classList.toggle('is-sel', k === i));
+  const pill = () => {
+    const on = $('.tabs button.on'), p = $('.tabs__p');
+    if (on && p) { p.style.left = on.offsetLeft + 'px'; p.style.width = on.offsetWidth + 'px'; }
   };
 
-  const shade = (hex, amt) => {
-    const n = parseInt(hex.slice(1), 16);
-    const cl = v => Math.max(0, Math.min(255, v));
-    const r = cl((n >> 16) + amt), g = cl(((n >> 8) & 255) + amt), b = cl((n & 255) + amt);
-    return `rgb(${r},${g},${b})`;
-  };
-
-  const movePill = () => {
-    const on = $('.an__switch button.is-on');
-    const pill = $('.an__pill');
-    if (!on || !pill) return;
-    pill.style.left  = on.offsetLeft + 'px';
-    pill.style.width = on.offsetWidth + 'px';
-  };
-
-  $$('.an__switch button').forEach(b => b.addEventListener('click', () => {
-    $$('.an__switch button').forEach(x => { x.classList.remove('is-on'); x.setAttribute('aria-selected','false'); });
-    b.classList.add('is-on'); b.setAttribute('aria-selected','true');
-    sys = b.dataset.sys;
-    movePill();
-    build();
+  $$('.tabs button').forEach(b => b.addEventListener('click', () => {
+    $$('.tabs button').forEach(x => { x.classList.remove('on'); x.setAttribute('aria-selected', 'false'); });
+    b.classList.add('on'); b.setAttribute('aria-selected', 'true');
+    sys = b.dataset.sys; pill(); build();
   }));
 
-  build();
-  movePill();
-  addEventListener('resize', movePill);
-  setTimeout(movePill, 400); // after webfonts settle
+  build(); pill();
+  addEventListener('resize', pill);
+  document.fonts?.ready.then(pill);
 })();
 
-/* ── 11 · TRADE HOVER PREVIEW ──────────────────────────────── */
+/* ══════════════════════════════════════════════════════════════
+   WOODPECKER: live destruction of an EIFS wall.
+   Three physical layers on canvas. Real erosion, real debris.
+   The bird is a Northern Flicker, the species responsible for
+   most stucco damage on the Canadian prairies.
+   ══════════════════════════════════════════════════════════════ */
 (() => {
-  const prev = $('#tradePreview');
-  if (!prev || matchMedia('(hover:none)').matches) return;
-  let x = 0, y = 0, tx = 0, ty = 0, raf = 0;
+  const root = $('#wp');
+  if (!root) return;
 
-  const glide = () => {
-    tx += (x - tx) * 0.14;
-    ty += (y - ty) * 0.14;
-    prev.style.left = tx + 'px';
-    prev.style.top  = ty + 'px';
-    raf = requestAnimationFrame(glide);
+  const cv    = $('#wpCanvas');
+  const bird  = $('#wpBird');
+  const head  = $('#wpHead');
+  const stage = $('#wpStage');
+  const depthEl = $('#wpDepth');
+  const holeEl  = $('#wpHoles');
+  const logEl   = $('#wpLog');
+  const btnPatch = $('#wpPatch');
+  const btnFix   = $('#wpFix');
+  const ctx = cv.getContext('2d');
+
+  let W = 0, H = 0, DPR = 1;
+  let finish, foam;                       // offscreen destructible layers
+  let fctx, mctx;
+
+  const debris = [];
+  const rings  = [];
+  let holes = 0, deepest = 0;             // 0 none, 1 finish, 2 foam, 3 sheathing
+  // Runs by default. The observer only PAUSES it when off screen, so the
+  // simulation never depends on IntersectionObserver to get started.
+  let deterred = false, running = true, raf = 0;
+
+  /* ---- layer painting ---- */
+  const paintSheathing = (c) => {
+    c.fillStyle = '#8A7355'; c.fillRect(0, 0, W, H);
+    // OSB flake texture
+    for (let i = 0; i < W * H / 260; i++) {
+      const x = Math.random() * W, y = Math.random() * H;
+      const w = rand(6, 22), h = rand(3, 7), a = rand(-0.6, 0.6);
+      c.save(); c.translate(x, y); c.rotate(a);
+      c.fillStyle = `rgba(${90 + Math.random() * 60 | 0},${70 + Math.random() * 45 | 0},${44 + Math.random() * 30 | 0},.55)`;
+      c.fillRect(-w / 2, -h / 2, w, h); c.restore();
+    }
+    c.fillStyle = 'rgba(40,28,16,.22)'; c.fillRect(0, 0, W, H);
   };
 
-  $$('.trade').forEach(card => {
-    card.addEventListener('mouseenter', () => {
-      prev.style.backgroundImage = `url(${card.dataset.img})`;
-      prev.classList.add('is-on');
-      if (!raf) raf = requestAnimationFrame(glide);
+  const paintFoam = (c) => {
+    c.clearRect(0, 0, W, H);
+    c.fillStyle = '#EFE9DC'; c.fillRect(0, 0, W, H);
+    for (let i = 0; i < W * H / 90; i++) {           // EPS bead structure
+      c.beginPath();
+      c.arc(Math.random() * W, Math.random() * H, rand(1.4, 3.4), 0, 6.284);
+      c.fillStyle = `rgba(${200 + Math.random() * 30 | 0},${194 + Math.random() * 28 | 0},${178 + Math.random() * 26 | 0},.5)`;
+      c.fill();
+    }
+  };
+
+  const paintFinish = (c) => {
+    c.clearRect(0, 0, W, H);
+    const g = c.createLinearGradient(0, 0, W, H);
+    g.addColorStop(0, '#CDBBA1'); g.addColorStop(1, '#B9A68B');
+    c.fillStyle = g; c.fillRect(0, 0, W, H);
+    for (let i = 0; i < W * H / 55; i++) {           // troweled aggregate
+      const x = Math.random() * W, y = Math.random() * H, r = rand(.6, 2.1);
+      c.beginPath(); c.arc(x, y, r, 0, 6.284);
+      c.fillStyle = Math.random() > .5
+        ? `rgba(255,250,240,${rand(.12, .3)})`
+        : `rgba(112,92,68,${rand(.1, .26)})`;
+      c.fill();
+    }
+    c.strokeStyle = 'rgba(90,72,52,.09)';            // control joint
+    c.lineWidth = 2; c.beginPath(); c.moveTo(0, H * .74); c.lineTo(W, H * .74); c.stroke();
+  };
+
+  /* ---- destructible blob ---- */
+  const bite = (c, x, y, r) => {
+    c.save();
+    c.globalCompositeOperation = 'destination-out';
+    c.beginPath();
+    const pts = 9;
+    for (let i = 0; i <= pts; i++) {
+      const a = (i / pts) * 6.284;
+      const rr = r * rand(.72, 1.3);
+      const px = x + Math.cos(a) * rr, py = y + Math.sin(a) * rr;
+      i ? c.lineTo(px, py) : c.moveTo(px, py);
+    }
+    c.closePath(); c.fill();
+    c.restore();
+  };
+
+  const setup = () => {
+    const r = cv.getBoundingClientRect();
+    DPR = Math.min(devicePixelRatio || 1, 2);
+    W = Math.round(r.width); H = Math.round(r.height);
+    if (!W || !H) return;
+    cv.width = W * DPR; cv.height = H * DPR;
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+
+    const mk = () => { const o = document.createElement('canvas'); o.width = W; o.height = H; return o; };
+    finish = mk(); foam = mk();
+    fctx = finish.getContext('2d'); mctx = foam.getContext('2d');
+    paintFoam(mctx); paintFinish(fctx);
+    holes = 0; deepest = 0; debris.length = 0; rings.length = 0;
+    updateHud();
+  };
+
+  const sheath = document.createElement('canvas');
+  const drawSheathOnce = () => {
+    sheath.width = W; sheath.height = H;
+    paintSheathing(sheath.getContext('2d'));
+  };
+
+  /* ---- HUD ---- */
+  const DEPTHS = ['Intact', 'Finish coat breached', 'Foam insulation exposed', 'Sheathing reached'];
+  const updateHud = () => {
+    holeEl.textContent = holes;
+    depthEl.textContent = DEPTHS[deepest];
+    depthEl.dataset.d = deepest;
+  };
+  const log = (t) => { logEl.textContent = t; };
+
+  /* ---- bird state machine ---- */
+  const B = { x: .30, y: .34, burst: 0, cool: 0, pecks: 0, gone: false, hop: 0 };
+
+  const place = () => {
+    bird.style.left = (B.x * 100) + '%';
+    bird.style.top  = (B.y * 100) + '%';
+  };
+
+  // bill tip, measured from the bird's real rendered box so it lands
+  // correctly at any canvas size
+  const billTip = () => {
+    const b = bird.getBoundingClientRect(), c = cv.getBoundingClientRect();
+    if (!b.width || !c.width) return { x: B.x * W + 26, y: B.y * H + 30 };
+    const scale = W / c.width;
+    return {
+      x: (b.left - c.left + b.width * 0.93) * scale,
+      y: (b.top - c.top + b.height * 0.23) * scale
+    };
+  };
+
+  const strike = () => {
+    const { x: px, y: py } = billTip();
+    const r = rand(6, 10);
+    bite(fctx, px, py, r);
+    if (B.pecks > 3) bite(mctx, px, py, r * .74);
+
+    holes = Math.max(holes, Math.ceil(B.hop + 1));
+    deepest = Math.max(deepest, B.pecks > 9 ? 3 : B.pecks > 3 ? 2 : 1);
+    updateHud();
+
+    rings.push({ x: px, y: py, r: 4, a: .55 });
+
+    const n = 5 + Math.random() * 7 | 0;
+    for (let i = 0; i < n; i++) {
+      const deep = B.pecks > 3;
+      debris.push({
+        x: px, y: py,
+        vx: rand(-3.4, 1.2), vy: rand(-4.2, -.6),
+        s: rand(1.6, 4.4), rot: rand(0, 6.28), vr: rand(-.3, .3),
+        c: deep ? `rgba(236,230,216,${rand(.75, 1)})` : `rgba(${185 + Math.random() * 40 | 0},${165 + Math.random() * 35 | 0},${138 + Math.random() * 30 | 0},1)`,
+        life: 1
+      });
+    }
+    // recoil
+    stage.style.transform = `translate(${rand(-2, 2)}px,${rand(-1.6, 1.6)}px)`;
+  };
+
+  let t = 0;
+  const frame = (now) => {
+    if (!running) return;
+    const dt = Math.min((now - t) || 16, 33); t = now;
+
+    /* bird logic */
+    if (!deterred && !B.gone) {
+      if (B.cool > 0) {
+        B.cool -= dt;
+        head.style.transform = 'rotate(0deg)';
+        if (B.cool <= 0) {
+          if (B.pecks >= 13) {                       // move to a fresh spot
+            B.pecks = 0; B.hop++;
+            B.x = Math.min(.78, .17 + (B.hop % 4) * .19 + rand(-.03, .03));
+            B.y = .22 + ((B.hop * 7) % 3) * .16;
+            place();
+            bird.style.transform = `scaleX(${Math.random() > .8 ? -1 : 1})`;
+            log('Moved to a new spot on the same elevation.');
+          }
+          B.burst = 5 + Math.random() * 5 | 0;
+        }
+      } else if (B.burst > 0) {
+        B.burst -= 1; B.pecks += 1;
+        head.style.transform = 'rotate(-27deg)';
+        setTimeout(() => { head.style.transform = 'rotate(4deg)'; }, 42);
+        strike();
+        B.cool = B.burst > 0 ? 78 : rand(620, 1150);
+        if (B.pecks === 4) log('Through the finish coat. Now into the foam.');
+        if (B.pecks === 10) log('Cavity opened. Sheathing exposed to weather.');
+      } else {
+        B.cool = 400;
+      }
+    }
+
+    /* physics */
+    for (let i = debris.length - 1; i >= 0; i--) {
+      const p = debris[i];
+      p.vy += .34; p.x += p.vx; p.y += p.vy; p.rot += p.vr;
+      if (p.y > H + 24) { debris.splice(i, 1); continue; }
+      if (p.y > H * .96) p.life -= .05;
+      if (p.life <= 0) debris.splice(i, 1);
+    }
+    for (let i = rings.length - 1; i >= 0; i--) {
+      const r = rings[i]; r.r += 1.9; r.a -= .028;
+      if (r.a <= 0) rings.splice(i, 1);
+    }
+
+    /* composite */
+    ctx.clearRect(0, 0, W, H);
+    ctx.drawImage(sheath, 0, 0, W, H);
+    ctx.drawImage(foam, 0, 0, W, H);
+    ctx.drawImage(finish, 0, 0, W, H);
+
+    ctx.save();
+    rings.forEach(r => {
+      ctx.beginPath(); ctx.arc(r.x, r.y, r.r, 0, 6.284);
+      ctx.strokeStyle = `rgba(255,255,255,${r.a})`; ctx.lineWidth = 1.4; ctx.stroke();
     });
-    card.addEventListener('mouseleave', () => {
-      prev.classList.remove('is-on');
-      cancelAnimationFrame(raf); raf = 0;
+    debris.forEach(p => {
+      ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot);
+      ctx.globalAlpha = p.life; ctx.fillStyle = p.c;
+      ctx.fillRect(-p.s / 2, -p.s / 2, p.s, p.s * rand(.7, 1));
+      ctx.restore();
     });
+    ctx.restore();
+
+    stage.style.transform = '';
+    raf = requestAnimationFrame(frame);
+  };
+
+  /* ---- controls ---- */
+  btnPatch.addEventListener('click', () => {
+    paintFinish(fctx);                                // cosmetic surface only
+    B.pecks = 0; B.cool = 900; deterred = false;
+    deepest = Math.min(deepest, 2);
+    updateHud();
+    log('Surface patched. The wall still sounds hollow, so the bird returns.');
+    btnPatch.disabled = true;
+    setTimeout(() => { btnPatch.disabled = false; }, 2600);
   });
-  addEventListener('mousemove', e => { x = e.clientX; y = e.clientY; }, { passive: true });
+
+  btnFix.addEventListener('click', () => {
+    paintFoam(mctx); paintFinish(fctx);
+    holes = 0; deepest = 0; B.pecks = 0; B.hop = 0;
+    debris.length = 0; rings.length = 0;
+    deterred = true; updateHud();
+    root.classList.add('fixed');
+    bird.classList.add('away');
+    log('Foam and mesh rebuilt, then deterrents fitted. The bird leaves the elevation.');
+    setTimeout(() => {
+      bird.classList.remove('away');
+      B.gone = false; deterred = false;
+      root.classList.remove('fixed');
+      B.x = .30; B.y = .34; place();
+      log('Watch the wall, or use the controls.');
+    }, 9000);
+  });
+
+  cv.addEventListener('click', e => {
+    if (deterred) return;
+    const r = cv.getBoundingClientRect();
+    B.x = (e.clientX - r.left) / r.width - .04;
+    B.y = (e.clientY - r.top) / r.height - .06;
+    B.x = Math.max(.04, Math.min(.82, B.x));
+    B.y = Math.max(.06, Math.min(.66, B.y));
+    B.pecks = 0; B.burst = 6; B.cool = 0; B.hop++;
+    place();
+  });
+
+  /* ---- lifecycle ---- */
+  const composite = () => {
+    ctx.clearRect(0, 0, W, H);
+    ctx.drawImage(sheath, 0, 0, W, H);
+    ctx.drawImage(foam, 0, 0, W, H);
+    ctx.drawImage(finish, 0, 0, W, H);
+  };
+  const boot = () => { setup(); drawSheathOnce(); place(); composite(); };
+  boot();
+  addEventListener('resize', () => { boot(); }, { passive: true });
+
+  if (CALM) {
+    // static, honest fallback: show a damaged wall, no motion
+    for (let i = 0; i < 3; i++) {
+      const x = W * (.25 + i * .22), y = H * (.3 + (i % 2) * .18);
+      bite(fctx, x, y, 12); bite(mctx, x, y, 8);
+    }
+    holes = 3; deepest = 3; updateHud();
+    ctx.drawImage(sheath, 0, 0, W, H); ctx.drawImage(foam, 0, 0, W, H); ctx.drawImage(finish, 0, 0, W, H);
+    log('Motion reduced. Use the controls to compare a patch against a full repair.');
+    return;
+  }
+
+  const start = () => {
+    cancelAnimationFrame(raf);
+    t = performance.now();
+    raf = requestAnimationFrame(frame);
+  };
+  start();
+
+  new IntersectionObserver(([e]) => {
+    if (e.isIntersecting) { running = true; start(); }
+    else { running = false; cancelAnimationFrame(raf); }
+  }, { threshold: .12 }).observe(root);
+
+  // a tab that was hidden freezes rAF; resume cleanly
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden && running) start();
+  });
 })();
 
-/* ── 12 · REVIEW MARQUEES ──────────────────────────────────── */
+/* ── REVIEW MARQUEES ────────────────────────────────────────── */
 (() => {
   if (CALM) return;
-  $$('.revs__track').forEach(track => {
+  $$('.rvs__t').forEach(track => {
     track.innerHTML += track.innerHTML;                 // seamless loop
-    const cards = track.children.length / 2;
-    const secs  = cards * 9;                            // pace scales with content
-    track.style.animation = `slide ${secs}s linear infinite`;
+    const secs = (track.children.length / 2) * 9;       // pace follows content
+    track.style.animation = `track ${secs}s linear infinite`;
     if (track.dataset.dir === '-1') track.style.animationDirection = 'reverse';
   });
 })();
 
-/* ── 13 · MAGNETIC BUTTONS ─────────────────────────────────── */
+/* ── QUOTE FORM ─────────────────────────────────────────────── */
 (() => {
-  if (CALM || matchMedia('(hover:none)').matches) return;
-  $$('.magnet').forEach(el => {
-    const R = 70;
-    el.addEventListener('mousemove', e => {
-      const r = el.getBoundingClientRect();
-      const dx = e.clientX - (r.left + r.width / 2);
-      const dy = e.clientY - (r.top + r.height / 2);
-      el.style.transform = `translate(${dx * 0.22}px, ${dy * 0.3}px)`;
-    });
-    el.addEventListener('mouseleave', () => { el.style.transform = ''; });
-  });
-})();
-
-/* ── 14 · QUOTE FORM → EMAIL ───────────────────────────────── */
-(() => {
-  const form = $('#quoteForm'), note = $('#formNote');
-  if (!form) return;
-
+  const form = $('#qf'), note = $('#qn');
   form.addEventListener('submit', e => {
     e.preventDefault();
     let ok = true;
-    $$('.fld', form).forEach(f => {
-      const c = f.querySelector('[required]');
-      if (!c) return;
+    $$('.f', form).forEach(f => {
+      const c = f.querySelector('[required]'); if (!c) return;
       const bad = !c.value.trim() || (c.type === 'email' && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(c.value));
-      f.classList.toggle('is-bad', bad);
-      if (bad) ok = false;
+      f.classList.toggle('bad', bad); if (bad) ok = false;
     });
-    if (!ok) { note.textContent = 'Please fill in the highlighted fields.'; note.classList.remove('is-ok'); return; }
+    if (!ok) { note.textContent = 'Please complete the highlighted fields.'; note.classList.remove('ok'); return; }
 
     const d = Object.fromEntries(new FormData(form));
-    const subject = `Quote request — ${d.service} — ${d.area}`;
     const body = [
-      `Name:    ${d.first} ${d.last}`,
-      `Email:   ${d.email}`,
-      `Phone:   ${d.phone}`,
-      `Service: ${d.service}`,
-      `Area:    ${d.area}`,
-      '',
-      'Details:',
-      d.message || '(none given)',
-      '',
-      '— sent from coralexteriors.com'
+      `Name: ${d.first} ${d.last}`, `Email: ${d.email}`, `Phone: ${d.phone}`,
+      `Service: ${d.service}`, `Area: ${d.area}`, '', 'Details:', d.message || 'None given'
     ].join('\n');
-
-    window.location.href =
-      `mailto:info@coralstucco.ca?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-
-    note.textContent = 'Opening your email app… if nothing happens, call 403-402-4454.';
-    note.classList.add('is-ok');
+    location.href = `mailto:info@coralstucco.ca?subject=${encodeURIComponent(`Quote request, ${d.service}, ${d.area}`)}&body=${encodeURIComponent(body)}`;
+    note.textContent = 'Opening your email application. If nothing happens, call 403 402 4454.';
+    note.classList.add('ok');
   });
-
-  $$('.fld [required]', form).forEach(c =>
-    c.addEventListener('input', () => c.closest('.fld').classList.remove('is-bad')));
+  $$('.f [required]', form).forEach(c =>
+    c.addEventListener('input', () => c.closest('.f').classList.remove('bad')));
 })();
 
-/* ── 15 · HERO PARALLAX ────────────────────────────────────── */
-(() => {
-  if (CALM) return;
-  const glow = $('.hero__glow');
-  const h1   = $('.hero__h1');
-  if (!glow) return;
-  addEventListener('mousemove', e => {
-    const x = (e.clientX / innerWidth - 0.5);
-    const y = (e.clientY / innerHeight - 0.5);
-    glow.style.transform = `translate(${x * -46}px, ${y * -30}px)`;
-    if (h1) h1.style.transform = `translate(${x * 9}px, ${y * 5}px)`;
-  }, { passive: true });
-})();
-
-/* ── 16 · FOOTER YEAR ──────────────────────────────────────── */
-const yr = $('#yr'); if (yr) yr.textContent = new Date().getFullYear();
+$('#yr').textContent = new Date().getFullYear();
 
 })();
