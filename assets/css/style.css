@@ -177,9 +177,9 @@ main .sheet:not(.hero) > .body{padding-inline:clamp(2rem,6vw,6rem)}
 .sh__l{max-width:64ch;font-size:var(--t-lede);color:var(--ink-2);line-height:1.55}
 
 /* ── HERO ───────────────────────────────────────────────────── */
-.hero{padding-top:4.25rem}
+.hero{padding-top:4.25rem;background:linear-gradient(90deg,#F4F2EB 0%,rgb(245,228,208) 100%)}
 .hero__body{padding:clamp(2.25rem,3.2vw,3rem) var(--pad) clamp(2.25rem,3.4vw,3.25rem) clamp(1.25rem,2.6vw,2.5rem)}
-.hero__row{display:grid;grid-template-columns:minmax(0,42fr) minmax(0,58fr);gap:clamp(1.75rem,3vw,3rem);align-items:start}
+.hero__row{display:grid;grid-template-columns:minmax(0,40fr) minmax(0,60fr);gap:clamp(1.75rem,3vw,3rem);align-items:start}
 .hero__copy{position:relative;z-index:3;min-width:0}
 .hero__k{display:flex;flex-wrap:wrap;align-items:center;gap:.45rem .85rem;
   font-family:var(--f-mono);font-size:var(--t-note);letter-spacing:.12em;text-transform:uppercase;
@@ -192,14 +192,16 @@ main .sheet:not(.hero) > .body{padding-inline:clamp(2rem,6vw,6rem)}
 .hero__cta{display:flex;flex-wrap:wrap;gap:0;margin-top:1.55rem;border:1px solid var(--ink);width:fit-content;max-width:100%}
 
 .hero__media{position:relative;min-width:0;padding:1rem 0 5rem 1rem;isolation:isolate}
-.hero__field{position:absolute;z-index:0;inset:-1rem calc(var(--pad) * -1) 1.5rem -1.25rem;
-  background:radial-gradient(115% 95% at 62% 42%,#FDF4E9 0%,#F8E6D5 42%,#F2DBC8 72%,#EEDAC9 100%)}
-.hero__blueprint{position:absolute;z-index:1;top:-1.75rem;right:calc(var(--pad) * -1);width:94%;height:calc(100% + 1rem);
-  max-width:none;max-height:none;color:var(--red);opacity:.48;pointer-events:none}
-.hero__photo{position:relative;z-index:2;width:calc(100% - 2.75rem);height:min(46vh,420px);max-height:min(46vh,420px);
-  object-fit:cover;object-position:center 55%;border:0;mix-blend-mode:multiply;
-  -webkit-mask-image:radial-gradient(120% 110% at 55% 50%,#000 55%,rgba(0,0,0,.65) 78%,transparent 100%);
-  mask-image:radial-gradient(120% 110% at 55% 50%,#000 55%,rgba(0,0,0,.65) 78%,transparent 100%)}
+/* Two supplied layers on the warm gradient: technical linework behind, the
+   cut out house in front. Both are transparent PNGs, so there is no frame
+   and no background to hide. */
+.hero__schematic{position:absolute;z-index:1;top:-6%;left:-14%;
+  width:112%;height:auto;opacity:.72;pointer-events:none;user-select:none;
+  -webkit-mask-image:linear-gradient(90deg,transparent 0,#000 20%,#000 100%);
+  mask-image:linear-gradient(90deg,transparent 0,#000 20%,#000 100%)}
+.hero__house{position:relative;z-index:2;display:block;
+  width:102%;max-width:none;margin:-11% -7% -6% 0;height:auto;max-height:none;
+  border:0;filter:drop-shadow(0 22px 36px rgba(18,17,16,.14))}
 .hero-facts{position:absolute;z-index:4;left:-3.75rem;bottom:-1rem;width:calc(100% + 3.75rem);display:grid;
   grid-template-columns:repeat(4,minmax(0,1fr));background:var(--white);border:1px solid var(--rule);
   box-shadow:0 16px 34px rgba(18,17,16,.12)}
@@ -710,8 +712,6 @@ main .sheet:not(.hero) > .body{padding-inline:clamp(2rem,6vw,6rem)}
   .hero__cta .btn--ghost{border-left:0;border-top:1px solid var(--ink)}
   .hero__media{padding-bottom:11.5rem}
   .hero-fact{padding:.85rem .7rem}
-  .hero__field{right:-1.1rem}
-  .hero__blueprint{right:-1.1rem;width:88%}
   .hero-band{padding-left:calc(var(--rail) + 1rem);padding-right:1rem}
 }
 
@@ -739,7 +739,8 @@ img,canvas,svg,video{max-height:none}
 .rvc__img{height:130px}
 .draw svg{max-height:min(52vh,440px);width:100%}
 .hero-band__drawing .draw svg{max-height:260px}
-.hero__photo,.hero__shot img,.plate img{max-height:min(46vh,420px)}
+.hero__house{max-height:none}
+.hero__shot img,.plate img{max-height:min(46vh,420px)}
 
 /* ── REDUCED MOTION ─────────────────────────────────────────── */
 @media (prefers-reduced-motion:reduce){
