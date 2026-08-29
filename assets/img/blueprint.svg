@@ -1,0 +1,110 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 900" fill="none" aria-hidden="true"
+     preserveAspectRatio="xMidYMid meet">
+  <!-- Authored construction linework. Every line is a real path so it can draw
+       itself, and every node is a real element so it can pulse. -->
+  <g class="bp" stroke="#A83823" stroke-linecap="round" stroke-linejoin="round">
+
+    <!-- ── setting out: outer construction frame ── -->
+    <g class="bp-l" stroke-width="1.15" opacity=".85">
+      <path d="M120 60 H1080"/>
+      <path d="M120 60 V840"/>
+      <path d="M1080 60 V840"/>
+      <path d="M120 840 H1080"/>
+    </g>
+
+    <!-- ── projection lines running off the building ── -->
+    <g class="bp-l" stroke-width=".9" opacity=".7">
+      <path d="M120 190 H1080"/>
+      <path d="M120 468 H1080"/>
+      <path d="M330 60 V840"/>
+      <path d="M742 60 V840"/>
+      <path d="M948 60 V840"/>
+    </g>
+
+    <!-- ── roof pitch construction, drawn from the ridge ── -->
+    <g class="bp-l" stroke-width="1.05" opacity=".9">
+      <path d="M262 352 L536 168 L810 352"/>
+      <path d="M536 168 V468"/>
+      <path d="M262 352 H810"/>
+      <path d="M300 324 L536 200 L772 324"/>
+    </g>
+
+    <!-- ── window elevation, upper right ── -->
+    <g class="bp-l" stroke-width="1.1" opacity=".95">
+      <path d="M980 236 H1120 V416 H980 Z"/>
+      <path d="M980 276 H1120"/>
+      <path d="M1050 236 V416"/>
+      <path d="M996 252 H1034 V266 H996 Z"/>
+      <path d="M1066 252 H1104 V266 H1066 Z"/>
+      <path d="M996 292 H1034 V400 H996 Z"/>
+      <path d="M1066 292 H1104 V400 H1066 Z"/>
+      <path d="M968 428 H1132"/>
+    </g>
+
+    <!-- ── door elevation, lower right ── -->
+    <g class="bp-l" stroke-width="1.1" opacity=".9">
+      <path d="M1006 552 H1112 V782 H1006 Z"/>
+      <path d="M1020 570 H1098 V646 H1020 Z"/>
+      <path d="M1020 664 H1098 V764 H1020 Z"/>
+      <path d="M1090 700 V722"/>
+    </g>
+
+    <!-- ── dimension line with tick ends ── -->
+    <g class="bp-l" stroke-width=".95" opacity=".8">
+      <path d="M262 596 H810"/>
+      <path d="M262 584 V608"/>
+      <path d="M810 584 V608"/>
+      <path d="M262 596 l16 -7 v14 Z"/>
+      <path d="M810 596 l-16 -7 v14 Z"/>
+      <path d="M180 236 V468"/>
+      <path d="M168 236 H192"/>
+      <path d="M168 468 H192"/>
+    </g>
+
+    <!-- ── stair / section detail, lower left ── -->
+    <g class="bp-l" stroke-width=".9" opacity=".75">
+      <path d="M150 700 H286 V812 H150 Z"/>
+      <path d="M150 728 H286"/>
+      <path d="M150 756 H286"/>
+      <path d="M150 784 H286"/>
+      <path d="M218 700 V812"/>
+    </g>
+
+    <!-- ── leader lines ── -->
+    <g class="bp-l" stroke-width=".85" opacity=".7">
+      <path d="M536 168 L536 96 L700 96"/>
+      <path d="M810 352 L900 352"/>
+      <path d="M262 352 L196 352"/>
+    </g>
+  </g>
+
+  <!-- ── dot grid: each dot pulses on its own delay ── -->
+  <g class="bp-dots" fill="#A83823">
+    <!-- rows are generated evenly; kept explicit so each has its own node -->
+    <circle cx="600" cy="228" r="3"/><circle cx="636" cy="228" r="3"/><circle cx="672" cy="228" r="3"/>
+    <circle cx="708" cy="228" r="3"/><circle cx="744" cy="228" r="3"/><circle cx="780" cy="228" r="3"/>
+    <circle cx="600" cy="264" r="3"/><circle cx="636" cy="264" r="3"/><circle cx="672" cy="264" r="3"/>
+    <circle cx="708" cy="264" r="3"/><circle cx="744" cy="264" r="3"/><circle cx="780" cy="264" r="3"/>
+    <circle cx="600" cy="300" r="3"/><circle cx="636" cy="300" r="3"/><circle cx="672" cy="300" r="3"/>
+    <circle cx="708" cy="300" r="3"/><circle cx="744" cy="300" r="3"/><circle cx="780" cy="300" r="3"/>
+    <circle cx="600" cy="336" r="3"/><circle cx="636" cy="336" r="3"/><circle cx="672" cy="336" r="3"/>
+    <circle cx="708" cy="336" r="3"/><circle cx="744" cy="336" r="3"/><circle cx="780" cy="336" r="3"/>
+    <circle cx="600" cy="372" r="3"/><circle cx="636" cy="372" r="3"/><circle cx="672" cy="372" r="3"/>
+    <circle cx="708" cy="372" r="3"/><circle cx="744" cy="372" r="3"/><circle cx="780" cy="372" r="3"/>
+    <circle cx="600" cy="408" r="3"/><circle cx="636" cy="408" r="3"/><circle cx="672" cy="408" r="3"/>
+    <circle cx="708" cy="408" r="3"/><circle cx="744" cy="408" r="3"/><circle cx="780" cy="408" r="3"/>
+  </g>
+
+  <!-- ── survey crosshairs: the slow pulsing nodes ── -->
+  <g class="bp-nodes" stroke="#A83823" stroke-width="1.1">
+    <g class="bp-node"><circle cx="330" cy="190" r="9"/><path d="M330 176v28M316 190h28"/></g>
+    <g class="bp-node"><circle cx="742" cy="190" r="9"/><path d="M742 176v28M728 190h28"/></g>
+    <g class="bp-node"><circle cx="330" cy="468" r="9"/><path d="M330 454v28M316 468h28"/></g>
+    <g class="bp-node"><circle cx="742" cy="468" r="9"/><path d="M742 454v28M728 468h28"/></g>
+    <g class="bp-node"><circle cx="948" cy="190" r="9"/><path d="M948 176v28M934 190h28"/></g>
+    <g class="bp-node"><circle cx="948" cy="468" r="9"/><path d="M948 454v28M934 468h28"/></g>
+    <g class="bp-node"><circle cx="536" cy="168" r="9"/><path d="M536 154v28M522 168h28"/></g>
+    <g class="bp-node"><circle cx="120" cy="60"  r="7"/><path d="M120 48v24M108 60h24"/></g>
+    <g class="bp-node"><circle cx="1080" cy="840" r="7"/><path d="M1080 828v24M1068 840h24"/></g>
+  </g>
+</svg>
